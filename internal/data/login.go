@@ -33,3 +33,23 @@ func ValidateLogin(v *validator.Validator, l *Login) {
 type LoginModel struct {
 	DB *sql.DB
 }
+
+// Add a placeholder method for inserting a new record in the logins table.
+func (m LoginModel) Insert(movie *Login) error {
+	return nil
+}
+
+// Add a placeholder method for fetching a specific record from the logins table.
+func (m LoginModel) Get(id int64) (*Login, error) {
+	return nil, nil
+}
+
+// Add a placeholder method for updating a specific record in the logins table.
+func (m LoginModel) Update(movie *Login) error {
+	return nil
+}
+
+// Add a placeholder method for deleting a specific record from the logins table.
+func (m LoginModel) Delete(id int64) error {
+	return nil
+}
