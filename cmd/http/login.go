@@ -38,7 +38,19 @@ func (app *application) createLoginHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	fmt.Fprintf(w, "%+v\n", input)
+	err = app.models.Logins.Insert(login)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/logins/%d", login.ID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"login": login}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) showLoginHandler(w http.ResponseWriter, r *http.Request) {

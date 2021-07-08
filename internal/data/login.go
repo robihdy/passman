@@ -34,9 +34,15 @@ type LoginModel struct {
 	DB *sql.DB
 }
 
-// Add a placeholder method for inserting a new record in the logins table.
-func (m LoginModel) Insert(movie *Login) error {
-	return nil
+func (m LoginModel) Insert(login *Login) error {
+	query := `
+        INSERT INTO logins (name, username, password, website) 
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, created_at, version`
+
+	args := []interface{}{login.Name, login.Username, login.Password, login.Website}
+
+	return m.DB.QueryRow(query, args...).Scan(&login.ID, &login.CreatedAt, &login.Version)
 }
 
 // Add a placeholder method for fetching a specific record from the logins table.
@@ -45,7 +51,7 @@ func (m LoginModel) Get(id int64) (*Login, error) {
 }
 
 // Add a placeholder method for updating a specific record in the logins table.
-func (m LoginModel) Update(movie *Login) error {
+func (m LoginModel) Update(login *Login) error {
 	return nil
 }
 
