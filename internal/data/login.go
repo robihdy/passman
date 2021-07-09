@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/robihdy/passman/internal/validator"
@@ -45,9 +46,38 @@ func (m LoginModel) Insert(login *Login) error {
 	return m.DB.QueryRow(query, args...).Scan(&login.ID, &login.CreatedAt, &login.Version)
 }
 
-// Add a placeholder method for fetching a specific record from the logins table.
 func (m LoginModel) Get(id int64) (*Login, error) {
-	return nil, nil
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+        SELECT id, created_at, name, username, password, website, version
+        FROM logins
+        WHERE id = $1`
+
+	var login Login
+
+	err := m.DB.QueryRow(query, id).Scan(
+		&login.ID,
+		&login.CreatedAt,
+		&login.Name,
+		&login.Username,
+		&login.Password,
+		&login.Website,
+		&login.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &login, nil
 }
 
 // Add a placeholder method for updating a specific record in the logins table.

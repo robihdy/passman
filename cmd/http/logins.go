@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/robihdy/passman/internal/data"
 	"github.com/robihdy/passman/internal/validator"
@@ -60,13 +60,15 @@ func (app *application) showLoginHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	login := data.Login{
-		ID:        id,
-		Name:      "Reddit",
-		Username:  "rabbithole",
-		Password:  "asiap1234",
-		Website:   null.NewString("https://reddit.com", true),
-		CreatedAt: time.Now(),
+	login, err := app.models.Logins.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"login": login}, nil)
