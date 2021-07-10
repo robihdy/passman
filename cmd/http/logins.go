@@ -45,6 +45,8 @@ func (app *application) createLoginHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	login.Password = encryption.Decrypt(login.Password, app.config.encryption.masterKey)
+
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/logins/%d", login.ID))
 
@@ -99,10 +101,10 @@ func (app *application) updateLoginHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name     string      `json:"name"`
-		Username string      `json:"username"`
-		Password string      `json:"password"`
-		Website  null.String `json:"website"`
+		Name     *string `json:"name"`
+		Username *string `json:"username"`
+		Password *string `json:"password"`
+		Website  *string `json:"website"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -111,10 +113,18 @@ func (app *application) updateLoginHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	login.Name = input.Name
-	login.Username = input.Username
-	login.Password = encryption.Encrypt(input.Password, app.config.encryption.masterKey)
-	login.Website = input.Website
+	if input.Name != nil {
+		login.Name = *input.Name
+	}
+	if input.Username != nil {
+		login.Username = *input.Username
+	}
+	if input.Password != nil {
+		login.Password = encryption.Encrypt(*input.Password, app.config.encryption.masterKey)
+	}
+	if input.Website != nil {
+		login.Website = null.StringFrom(*input.Website)
+	}
 
 	v := validator.New()
 	if data.ValidateLogin(v, login); !v.Valid() {
