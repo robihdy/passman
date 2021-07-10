@@ -80,12 +80,46 @@ func (m LoginModel) Get(id int64) (*Login, error) {
 	return &login, nil
 }
 
-// Add a placeholder method for updating a specific record in the logins table.
 func (m LoginModel) Update(login *Login) error {
-	return nil
+	query := `
+        UPDATE logins 
+        SET name = $1, username = $2, password = $3, website = $4, version = version + 1
+        WHERE id = $5
+        RETURNING version`
+
+	args := []interface{}{
+		login.Name,
+		login.Username,
+		login.Password,
+		login.Website,
+		login.ID,
+	}
+
+	return m.DB.QueryRow(query, args...).Scan(&login.Version)
 }
 
-// Add a placeholder method for deleting a specific record from the logins table.
 func (m LoginModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+
+	query := `
+        DELETE FROM logins
+        WHERE id = $1`
+
+	result, err := m.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+
 	return nil
 }
