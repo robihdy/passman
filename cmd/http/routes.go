@@ -6,7 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *application) routes() *httprouter.Router {
+func (app *application) routes() http.Handler {
 	router := httprouter.New()
 
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
@@ -20,5 +20,5 @@ func (app *application) routes() *httprouter.Router {
 	router.HandlerFunc(http.MethodPatch, "/v1/logins/:id", app.updateLoginHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/logins/:id", app.deleteLoginHandler)
 
-	return router
+	return app.recoverPanic(router)
 }
