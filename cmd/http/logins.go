@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/robihdy/passman/internal/data"
-	"github.com/robihdy/passman/internal/encryption"
 	"github.com/robihdy/passman/internal/validator"
 	"gopkg.in/guregu/null.v4"
 )
@@ -28,7 +27,7 @@ func (app *application) createLoginHandler(w http.ResponseWriter, r *http.Reques
 	login := &data.Login{
 		Name:     input.Name,
 		Username: input.Username,
-		Password: encryption.Encrypt(input.Password, app.config.encryption.masterKey),
+		Password: input.Password,
 		Website:  input.Website,
 	}
 
@@ -44,8 +43,6 @@ func (app *application) createLoginHandler(w http.ResponseWriter, r *http.Reques
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
-	login.Password = encryption.Decrypt(login.Password, app.config.encryption.masterKey)
 
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/logins/%d", login.ID))
@@ -73,8 +70,6 @@ func (app *application) showLoginHandler(w http.ResponseWriter, r *http.Request)
 		}
 		return
 	}
-
-	login.Password = encryption.Decrypt(login.Password, app.config.encryption.masterKey)
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"login": login}, nil)
 	if err != nil {
@@ -120,7 +115,7 @@ func (app *application) updateLoginHandler(w http.ResponseWriter, r *http.Reques
 		login.Username = *input.Username
 	}
 	if input.Password != nil {
-		login.Password = encryption.Encrypt(*input.Password, app.config.encryption.masterKey)
+		login.Password = *input.Password
 	}
 	if input.Website != nil {
 		login.Website = null.StringFrom(*input.Website)
@@ -137,8 +132,6 @@ func (app *application) updateLoginHandler(w http.ResponseWriter, r *http.Reques
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
-	login.Password = encryption.Decrypt(login.Password, app.config.encryption.masterKey)
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"login": login}, nil)
 	if err != nil {
@@ -165,6 +158,41 @@ func (app *application) deleteLoginHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"message": "login successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listLoginsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name     string
+		Username string
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Name = app.readString(qs, "name", "")
+	input.Username = app.readString(qs, "username", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "name", "username", "website", "-id", "-name", "-username", "-website"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	logins, err := app.models.Logins.GetAll(input.Name, input.Username, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"logins": logins}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

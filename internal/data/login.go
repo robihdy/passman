@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/robihdy/passman/internal/encryption"
 	"github.com/robihdy/passman/internal/validator"
 	"gopkg.in/guregu/null.v4"
 )
@@ -33,7 +34,8 @@ func ValidateLogin(v *validator.Validator, l *Login) {
 }
 
 type LoginModel struct {
-	DB *sql.DB
+	DB     *sql.DB
+	aesKey string
 }
 
 func (m LoginModel) Insert(login *Login) error {
@@ -42,7 +44,7 @@ func (m LoginModel) Insert(login *Login) error {
         VALUES ($1, $2, $3, $4)
         RETURNING id, created_at, version`
 
-	args := []interface{}{login.Name, login.Username, login.Password, login.Website}
+	args := []interface{}{login.Name, login.Username, encryption.Encrypt(login.Password, m.aesKey), login.Website}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -84,6 +86,8 @@ func (m LoginModel) Get(id int64) (*Login, error) {
 		}
 	}
 
+	login.Password = encryption.Decrypt(login.Password, m.aesKey)
+
 	return &login, nil
 }
 
@@ -97,7 +101,7 @@ func (m LoginModel) Update(login *Login) error {
 	args := []interface{}{
 		login.Name,
 		login.Username,
-		login.Password,
+		encryption.Encrypt(login.Password, m.aesKey),
 		login.Website,
 		login.ID,
 	}
@@ -105,7 +109,13 @@ func (m LoginModel) Update(login *Login) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	return m.DB.QueryRowContext(ctx, query, args...).Scan(&login.Version)
+	if err := m.DB.QueryRowContext(ctx, query, args...).Scan(&login.Version); err != nil {
+		return err
+	}
+
+	login.Password = encryption.Decrypt(login.Password, m.aesKey)
+
+	return nil
 }
 
 func (m LoginModel) Delete(id int64) error {
@@ -135,4 +145,49 @@ func (m LoginModel) Delete(id int64) error {
 	}
 
 	return nil
+}
+
+func (m LoginModel) GetAll(name string, username string, filters Filters) ([]*Login, error) {
+	query := `
+        SELECT id, created_at, name, username, password, website, version
+        FROM logins
+        ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logins := []*Login{}
+
+	for rows.Next() {
+		var login Login
+
+		err := rows.Scan(
+			&login.ID,
+			&login.CreatedAt,
+			&login.Name,
+			&login.Username,
+			&login.Password,
+			&login.Website,
+			&login.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		login.Password = encryption.Decrypt(login.Password, m.aesKey)
+
+		logins = append(logins, &login)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return logins, nil
 }

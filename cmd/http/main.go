@@ -25,9 +25,7 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
-	encryption struct {
-		masterKey string
-	}
+	aesKey string
 }
 
 type application struct {
@@ -47,7 +45,7 @@ func main() {
 	flag.IntVar(&cfg.db.maxIdleConns, "db_max_idle_conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db_max_idle_time", "15m", "PostgreSQL max connection idle time")
 
-	flag.StringVar(&cfg.encryption.masterKey, "encryption-master-key", "c18f1909152fb8461d9785ca329c51ce06696f8603da849da2b4d5bad3fca016", "Master key for encrypt/decrypt")
+	flag.StringVar(&cfg.aesKey, "encryption-master-key", "c18f1909152fb8461d9785ca329c51ce06696f8603da849da2b4d5bad3fca016", "Master key for encrypt/decrypt")
 
 	flag.Parse()
 
@@ -64,7 +62,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
-		models: data.NewModels(db),
+		models: data.NewModels(db, cfg.aesKey),
 	}
 
 	srv := &http.Server{

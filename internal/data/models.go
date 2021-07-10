@@ -14,8 +14,8 @@ type Models struct {
 	Logins LoginModel
 }
 
-func NewModels(db *sql.DB) Models {
+func NewModels(db *sql.DB, aesKey string) Models {
 	return Models{
-		Logins: LoginModel{DB: db},
+		Logins: LoginModel{DB: db, aesKey: aesKey},
 	}
 }
