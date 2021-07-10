@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/robihdy/passman/internal/data"
+	"github.com/robihdy/passman/internal/encryption"
 	"github.com/robihdy/passman/internal/validator"
 	"gopkg.in/guregu/null.v4"
 )
@@ -27,7 +28,7 @@ func (app *application) createLoginHandler(w http.ResponseWriter, r *http.Reques
 	login := &data.Login{
 		Name:     input.Name,
 		Username: input.Username,
-		Password: input.Password,
+		Password: encryption.Encrypt(input.Password, app.config.encryption.masterKey),
 		Website:  input.Website,
 	}
 
@@ -70,6 +71,8 @@ func (app *application) showLoginHandler(w http.ResponseWriter, r *http.Request)
 		}
 		return
 	}
+
+	login.Password = encryption.Decrypt(login.Password, app.config.encryption.masterKey)
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"login": login}, nil)
 	if err != nil {

@@ -36,3 +36,6 @@ gosec-results-*.txt
 
 # Bin Directory
 bin/
+
+# playground directory
+playground/

@@ -25,6 +25,9 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
+	encryption struct {
+		masterKey string
+	}
 }
 
 type application struct {
@@ -39,10 +42,12 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://passman:ghj123@localhost/passman?sslmode=disable", "PostgreSQL DSN")
-	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
-	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
-	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
+	flag.StringVar(&cfg.db.dsn, "db_dsn", "postgres://passman:ghj123@localhost/passman?sslmode=disable", "PostgreSQL DSN")
+	flag.IntVar(&cfg.db.maxOpenConns, "db_max_open_conns", 25, "PostgreSQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db_max_idle_conns", 25, "PostgreSQL max idle connections")
+	flag.StringVar(&cfg.db.maxIdleTime, "db_max_idle_time", "15m", "PostgreSQL max connection idle time")
+
+	flag.StringVar(&cfg.encryption.masterKey, "encryption-master-key", "c18f1909152fb8461d9785ca329c51ce06696f8603da849da2b4d5bad3fca016", "Master key for encrypt/decrypt")
 
 	flag.Parse()
 
