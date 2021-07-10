@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -43,7 +44,10 @@ func (m LoginModel) Insert(login *Login) error {
 
 	args := []interface{}{login.Name, login.Username, login.Password, login.Website}
 
-	return m.DB.QueryRow(query, args...).Scan(&login.ID, &login.CreatedAt, &login.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&login.ID, &login.CreatedAt, &login.Version)
 }
 
 func (m LoginModel) Get(id int64) (*Login, error) {
@@ -58,7 +62,10 @@ func (m LoginModel) Get(id int64) (*Login, error) {
 
 	var login Login
 
-	err := m.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&login.ID,
 		&login.CreatedAt,
 		&login.Name,
@@ -95,7 +102,10 @@ func (m LoginModel) Update(login *Login) error {
 		login.ID,
 	}
 
-	return m.DB.QueryRow(query, args...).Scan(&login.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&login.Version)
 }
 
 func (m LoginModel) Delete(id int64) error {
@@ -107,7 +117,10 @@ func (m LoginModel) Delete(id int64) error {
         DELETE FROM logins
         WHERE id = $1`
 
-	result, err := m.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
