@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/robihdy/passman/internal/encryption"
 	"github.com/robihdy/passman/internal/validator"
 	"gopkg.in/guregu/null.v4"
 )
@@ -34,8 +33,7 @@ func ValidateLogin(v *validator.Validator, l *Login) {
 }
 
 type LoginModel struct {
-	DB     *sql.DB
-	aesKey string
+	DB *sql.DB
 }
 
 func (m LoginModel) Insert(login *Login) error {
@@ -44,7 +42,7 @@ func (m LoginModel) Insert(login *Login) error {
         VALUES ($1, $2, $3, $4)
         RETURNING id, created_at, version`
 
-	args := []interface{}{login.Name, login.Username, encryption.Encrypt(login.Password, m.aesKey), login.Website}
+	args := []interface{}{login.Name, login.Username, login.Password, login.Website}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -86,8 +84,6 @@ func (m LoginModel) Get(id int64) (*Login, error) {
 		}
 	}
 
-	login.Password = encryption.Decrypt(login.Password, m.aesKey)
-
 	return &login, nil
 }
 
@@ -101,7 +97,7 @@ func (m LoginModel) Update(login *Login) error {
 	args := []interface{}{
 		login.Name,
 		login.Username,
-		encryption.Encrypt(login.Password, m.aesKey),
+		login.Password,
 		login.Website,
 		login.ID,
 	}
@@ -112,8 +108,6 @@ func (m LoginModel) Update(login *Login) error {
 	if err := m.DB.QueryRowContext(ctx, query, args...).Scan(&login.Version); err != nil {
 		return err
 	}
-
-	login.Password = encryption.Decrypt(login.Password, m.aesKey)
 
 	return nil
 }
@@ -179,8 +173,6 @@ func (m LoginModel) GetAll(name string, username string, filters Filters) ([]*Lo
 		if err != nil {
 			return nil, err
 		}
-
-		login.Password = encryption.Decrypt(login.Password, m.aesKey)
 
 		logins = append(logins, &login)
 	}
