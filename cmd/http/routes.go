@@ -14,13 +14,15 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/logins", app.listLoginsHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/logins", app.createLoginHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/logins/:id", app.showLoginHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/logins/:id", app.updateLoginHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/logins/:id", app.deleteLoginHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/logins", app.requirePermission("logins", app.listLoginsHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/logins", app.requirePermission("logins", app.createLoginHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/logins/:id", app.requirePermission("logins", app.showLoginHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/logins/:id", app.requirePermission("logins", app.updateLoginHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/logins/:id", app.requirePermission("logins", app.deleteLoginHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 
-	return app.recoverPanic(router)
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+
+	return app.recoverPanic(app.authenticate(router))
 }
