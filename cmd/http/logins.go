@@ -38,7 +38,7 @@ func (app *application) createLoginHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = app.models.Logins.Insert(login)
+	err = app.models.Logins.Insert(login, app.contextGetUser(r).ID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -60,7 +60,7 @@ func (app *application) showLoginHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	login, err := app.models.Logins.Get(id)
+	login, err := app.models.Logins.Get(id, app.contextGetUser(r).ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -84,7 +84,7 @@ func (app *application) updateLoginHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	login, err := app.models.Logins.Get(id)
+	login, err := app.models.Logins.Get(id, app.contextGetUser(r).ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -146,7 +146,7 @@ func (app *application) deleteLoginHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = app.models.Logins.Delete(id)
+	err = app.models.Logins.Delete(id, app.contextGetUser(r).ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -186,7 +186,7 @@ func (app *application) listLoginsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	logins, err := app.models.Logins.GetAll(input.Name, input.Username, input.Filters)
+	logins, err := app.models.Logins.GetByUserID(app.contextGetUser(r).ID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

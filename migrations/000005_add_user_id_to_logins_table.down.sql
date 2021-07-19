@@ -1,0 +1,1 @@
+ALTER TABLE logins DROP COLUMN user_id;

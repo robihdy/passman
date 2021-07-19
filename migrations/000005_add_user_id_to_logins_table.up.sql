@@ -1,0 +1,1 @@
+ALTER TABLE logins ADD user_id bigint NOT NULL REFERENCES users ON DELETE CASCADE;

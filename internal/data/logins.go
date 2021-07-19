@@ -36,13 +36,13 @@ type LoginModel struct {
 	DB *sql.DB
 }
 
-func (m LoginModel) Insert(login *Login) error {
+func (m LoginModel) Insert(login *Login, userID int64) error {
 	query := `
-        INSERT INTO logins (name, username, password, website) 
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO logins (name, username, password, website, user_id) 
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id, created_at, version`
 
-	args := []interface{}{login.Name, login.Username, login.Password, login.Website}
+	args := []interface{}{login.Name, login.Username, login.Password, login.Website, userID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -50,7 +50,7 @@ func (m LoginModel) Insert(login *Login) error {
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&login.ID, &login.CreatedAt, &login.Version)
 }
 
-func (m LoginModel) Get(id int64) (*Login, error) {
+func (m LoginModel) Get(id, userID int64) (*Login, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -58,14 +58,14 @@ func (m LoginModel) Get(id int64) (*Login, error) {
 	query := `
         SELECT id, created_at, name, username, password, website, version
         FROM logins
-        WHERE id = $1`
+        WHERE id = $1 AND user_id = $2`
 
 	var login Login
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+	err := m.DB.QueryRowContext(ctx, query, id, userID).Scan(
 		&login.ID,
 		&login.CreatedAt,
 		&login.Name,
@@ -112,19 +112,19 @@ func (m LoginModel) Update(login *Login) error {
 	return nil
 }
 
-func (m LoginModel) Delete(id int64) error {
+func (m LoginModel) Delete(id, userID int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
 	}
 
 	query := `
         DELETE FROM logins
-        WHERE id = $1`
+        WHERE id = $1 AND user_id = $2`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := m.DB.ExecContext(ctx, query, id)
+	result, err := m.DB.ExecContext(ctx, query, id, userID)
 	if err != nil {
 		return err
 	}
@@ -141,16 +141,17 @@ func (m LoginModel) Delete(id int64) error {
 	return nil
 }
 
-func (m LoginModel) GetAll(name string, username string, filters Filters) ([]*Login, error) {
+func (m LoginModel) GetByUserID(userID int64) ([]*Login, error) {
 	query := `
         SELECT id, created_at, name, username, password, website, version
         FROM logins
+		WHERE user_id = $1
         ORDER BY id`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query)
+	rows, err := m.DB.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}

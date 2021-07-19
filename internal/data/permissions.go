@@ -8,6 +8,11 @@ import (
 	"github.com/lib/pq"
 )
 
+const (
+	PermissionCodeAdmin  = "admin"
+	PermissionCodeLogins = "logins"
+)
+
 type Permissions []string
 
 func (p Permissions) Include(code string) bool {
