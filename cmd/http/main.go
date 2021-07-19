@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -22,6 +23,9 @@ type config struct {
 		maxOpenConns int
 		maxIdleConns int
 		maxIdleTime  string
+	}
+	cors struct {
+		trustedOrigins []string
 	}
 }
 
@@ -41,6 +45,10 @@ func main() {
 	flag.IntVar(&cfg.db.maxOpenConns, "db_max_open_conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db_max_idle_conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db_max_idle_time", "15m", "PostgreSQL max connection idle time")
+
+	var trustedOrigins string
+	flag.StringVar(&trustedOrigins, "cors-trusted-origins", "*", "Trusted CORS origins (space separated)")
+	cfg.cors.trustedOrigins = strings.Fields(trustedOrigins)
 
 	flag.Parse()
 
